@@ -47,10 +47,10 @@ We may train in single process mode or multi-process mode, which is much faster.
 ### Single Process (slow)
 
 ```
-python run_retro.py  --device 1 
+python run_retro.py  --device 1
 
 # for with types setting
-python run_retro.py  --device 1 --typed
+python run_retro.py  --device 1  --typed
 ```
 
 ### Multi Process (fast)
@@ -68,19 +68,19 @@ Testing can also be done in single or multi process mode.
 ### Single Process (slow)
 
 ```
-python run_retro.py  --device 1  --input_model_file model.pt --test_only
+python run_retro.py  --device 1 --input_model_file model.pt --test_only
 
 # for with types setting
-python run_retro.py  --device 1  --input_model_file model.pt --test_only --typed
+python run_retro.py  --device 1 --input_model_file model.pt --test_only --typed
 ```
 
 ### Multi Process (fast)
 
 ```
-python run_retro.py  --device 1 --filename uspto50k --multiprocess  --input_model_file model.pt --test_only  
+python run_retro.py  --device 1 --multiprocess  --input_model_file model.pt --test_only  
 
 # for with types setting
-python run_retro.py  --device 1 --filename uspto50k --multiprocess  --input_model_file model.pt --test_only  --typed
+python run_retro.py  --device 1 --multiprocess  --input_model_file model.pt --test_only  --typed
 ```
 
 ### Run testing on validation and training splits:

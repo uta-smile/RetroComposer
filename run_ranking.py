@@ -158,7 +158,7 @@ def main():
     parser.add_argument('--multiprocess', action='store_true', default=False, help='train a model with multi process')
     parser.add_argument('--num_processes', type=int, default=2, help='number of processes for multi-process training')
     parser.add_argument('--input_model_file', type=str, default='uspto50k', help='filename to read the model (if there is any)')
-    parser.add_argument('--filename', type=str, default='', help='output filename')
+    parser.add_argument('--filename', type=str, default='uspto50k', help='output filename')
     parser.add_argument('--tag', type=str, default='', help='tag name')
     parser.add_argument('--runseed', type=int, default=0, help="Seed for minibatch selection, random initialization.")
     parser.add_argument('--eval_train', action='store_true', default=False, help='evaluating training or not')
