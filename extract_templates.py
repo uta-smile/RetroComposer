@@ -6,6 +6,7 @@ import multiprocessing
 import pickle
 import sys
 import pandas as pd
+from functools import partial
 
 from collections import Counter
 from rdkit import Chem
@@ -91,7 +92,7 @@ def get_tpl(task):
     return idx, react, prod, reaction_smarts, cano_react, retro_okay_list, id, cls
 
 
-def match_template(task):
+def match_template(task, data):
     idx, val = task
     reactant = cano_smiles(val['reactant'])
     params = Chem.SmilesParserParams()
@@ -104,30 +105,30 @@ def match_template(task):
     templates_list = []
     atom_indexes_fp_labels = {}
     # multiple templates may be valid for a reaction, find all of them
-    for prod_smarts_fp_idx, prod_smarts_tmpls in prod_smarts_fp_to_templates.items():
+    for prod_smarts_fp_idx, prod_smarts_tmpls in data['prod_smarts_fp_to_templates'].items():
         prod_smarts_fp_idx = int(prod_smarts_fp_idx)
-        prod_smarts_fp = prod_smarts_fp_list[prod_smarts_fp_idx]
+        prod_smarts_fp = data['prod_smarts_fp_list'][prod_smarts_fp_idx]
         for prod_smarts_idx, tmpls in prod_smarts_tmpls.items():
             # skip if fingerprint not match
             if (prod_smarts_fp & prod_fp_vec) < prod_smarts_fp:
                 continue
             prod_smarts_idx = int(prod_smarts_idx)
-            prod_smarts = prod_smarts_list[prod_smarts_idx]
-            if prod_smarts not in smarts_mol_cache:
-                smarts_mol_cache[prod_smarts] = Chem.MergeQueryHs(Chem.MolFromSmarts(prod_smarts))
+            prod_smarts = data['prod_smarts_list'][prod_smarts_idx]
+            if prod_smarts not in data['smarts_mol_cache']:
+                data['smarts_mol_cache'][prod_smarts] = Chem.MergeQueryHs(Chem.MolFromSmarts(prod_smarts))
             # we need also find matched atom indexes
-            matches = mol_prod.GetSubstructMatches(smarts_mol_cache[prod_smarts])
+            matches = mol_prod.GetSubstructMatches(data['smarts_mol_cache'][prod_smarts])
             if len(matches):
                 found_okay_tmpl = False
                 for tmpl in tmpls:
                     pred_mols = Reactor.run_reaction(val['product'], tmpl)
                     if reactant and pred_mols and (reactant in pred_mols):
                         found_okay_tmpl = True
-                        template_cands.append(templates_train.index(tmpl))
+                        template_cands.append(data['templates_train'].index(tmpl))
                         templates_list.append(tmpl)
                         reacts = tmpl.split('>>')[1].split('.')
                         if len(reacts) > 2: print('too many reacts:', reacts, idx)
-                        seq_reacts = [react_smarts_list.index(cano_smarts(r)) for r in reacts]
+                        seq_reacts = [data['react_smarts_list'].index(cano_smarts(r)) for r in reacts]
                         seq = [prod_smarts_fp_idx] + sorted(seq_reacts)
                         sequences.append(seq)
                 # for each prod center, there may be multiple matches
@@ -161,7 +162,7 @@ def match_template(task):
         'reaction_center_atom_indexes': reaction_center_atom_indexes,
     }
 
-    return idx, tmpl_res
+    return (idx, tmpl_res)
 
 
 if __name__ == "__main__":
@@ -324,8 +325,8 @@ if __name__ == "__main__":
         with open(templates_cano_train, 'w') as f:
             json.dump(data, f, indent=4)
 
-    smarts_mol_cache = {}
-    smarts_fp_cache = {}
+    data['smarts_mol_cache'] = {}
+    data['smarts_fp_cache'] = {}
     # find all applicable templates for each reaction
     # since multiple templates may be valid for a reaction
     for data_set in ['test', 'train', 'valid']:
@@ -338,7 +339,7 @@ if __name__ == "__main__":
         # for task in tasks: match_template(task)
         cnt = 0
         with multiprocessing.Pool(16) as pool:
-            for res in tqdm(pool.imap_unordered(match_template, tasks), total=len(tasks)):
+            for res in tqdm(pool.imap_unordered(partial(match_template, data=data), tasks), total=len(tasks)):
                 idx, tmpl_res = res
                 templates_data[idx].update(tmpl_res)
                 cnt += len(tmpl_res['templates']) > 0
